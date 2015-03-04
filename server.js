@@ -7,17 +7,20 @@ var config = require('./lib/config');
 var redis = require("redis");
 var secret = require('./lib/secret');
 
-var client = null;
-if(process.env.REDISTOGO_URL) { //heroku
-  client = require('redis-url').connect(process.env.REDISTOGO_URL); 
-} else if(config.env == "development") {
-  client = redis.createClient();
-}  else { //nodejitsu
-  client = redis.createClient(secret.redisPort, secret.redisMachine);
-  client.auth(secret.redisAuth, function (err) {
-     if (err) { throw err; }
-  });
-}
+var MongoClient = require('mongodb').MongoClient
+    , ObjectID = require('mongodb').ObjectID;
+
+var collection = null;
+
+MongoClient.connect(secret.mongoDBconnection, function (err, db) {
+    if (err) {
+        throw err;
+    } else {
+        collection = db.collection('todos');
+
+    }
+    //db.close();
+});
 
 app.set('view engine', 'ejs');
 app.set('view options', { layout: false });
@@ -53,28 +56,32 @@ app.get('/', function (req, res) {
 });
 
 app.get('/todos', function(req, res) {
-  client.hgetall("todos", function(err, data) {
+    collection.find().toArray(function(err, data) {
     json(res, data);
   });
+
 });
 
 app.post('/todos/create', function(req, res) {
-  var id = guid();
-  client.hset("todos", id, req.body.description);
 
-  json(res, { id: id });
+    collection.insert({description:req.body.description},{}, function(err, docs) {
+        json(res, { id: docs._id });
+    });
+
 });
 
 app.post('/todos/update', function(req, res) {
-  client.hset("todos", req.body.id, req.body.description);
+    collection.update({_id:ObjectID(req.body.id)}, {$set:{description:req.body.description}});
 
   json(res, { });
 });
 
 app.post('/todos/delete', function(req, res) {
-  client.hdel("todos", req.body.id);
-
-  json(res, { });
+    collection.remove({_id:ObjectID(req.body.id)}, function(err, result) {
+        if(err)
+            console.log(err);
+        json(res, result);
+    });
 });
 
 server.listen(process.env.PORT || config.port);

@@ -3,8 +3,9 @@
 <script>
 $(function() {
   $.getJSON("/todos", function(data) {
+      var _id;
     for(var key in data) {
-      addNewEntry(key, data[key]);
+      addNewEntry(data[key]._id, data[key].description);
     }
 
     addNewEntry();
