@@ -2,9 +2,7 @@ var express = require('express');
 var _ = require('underscore');
 var app = express();
 var server = require('http').createServer(app);
-var parseCookie = require('./lib/cookie_parser');
 var config = require('./lib/config');
-var redis = require("redis");
 var secret = require('./lib/secret');
 
 var MongoClient = require('mongodb').MongoClient
